@@ -289,13 +289,16 @@
   }
 
   function afterMove(){
-    renderBoard();
     const result = checkWinner(board);
     if (result) {
-      finishGame(result);
+      finishGame(result); // this renders the board itself
       return;
     }
+    // flip whose turn it is BEFORE re-rendering, otherwise renderBoard()
+    // attaches click listeners based on the old turn and the board
+    // ends up freezing after the ai replies
     turn = turn === 'X' ? 'O' : 'X';
+    renderBoard();
     updateStatus();
     if (turn === aiSymbol && !gameOver) {
       window.setTimeout(aiMove, 350);
