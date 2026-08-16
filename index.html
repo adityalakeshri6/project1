@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chalkboard Tic-Tac-Toe</title>
+<meta name="description" content="Play against an unbeatable minimax AI. Best you can do is force a draw - can you?">
+<meta property="og:title" content="Chalkboard Tic-Tac-Toe - Can You Beat the AI?">
+<meta property="og:description" content="Play against an unbeatable minimax AI. Best you can do is force a draw - can you?">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Chalkboard Tic-Tac-Toe - Can You Beat the AI?">
+<meta name="twitter:description" content="Play against an unbeatable minimax AI. Best you can do is force a draw - can you?">
+<meta name="theme-color" content="#1f2b22">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
@@ -143,6 +151,13 @@
     gap: 8px;
     max-width: 320px;
     margin: 0 auto;
+    position: relative;
+  }
+
+  .grid-wrap{
+    position: relative;
+    max-width: 320px;
+    margin: 0 auto;
   }
 
   .cell{
@@ -181,6 +196,128 @@
     margin-top: 22px;
   }
 
+  .scoreboard{
+    display:flex; justify-content:center; gap:10px;
+    margin-bottom: 16px;
+  }
+
+  .score-item{
+    background: rgba(238,242,234,0.05);
+    border: 1px solid rgba(238,242,234,0.15);
+    border-radius: 8px;
+    padding: 6px 14px;
+    text-align:center;
+    min-width: 60px;
+  }
+
+  .score-label{
+    display:block;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--chalk-dim);
+  }
+
+  .score-val{
+    display:block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--chalk-yellow);
+  }
+
+  .share-btn{
+    display:block;
+    margin: 14px auto 0;
+    width: fit-content;
+  }
+
+  .toast{
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(22,24,29,0.94);
+    color: var(--chalk-yellow);
+    border: 1px solid var(--chalk-yellow);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+    z-index: 50;
+  }
+
+  .toast.show{
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .result-overlay{
+    position: absolute;
+    inset: 0;
+    background: rgba(22,24,29,0.92);
+    border-radius: 8px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 10px;
+    text-align:center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.92);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 30;
+  }
+
+  .result-overlay.show{
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+  }
+
+  .result-icon{
+    font-size: 2.6rem;
+    animation: bounceIn 0.4s ease;
+  }
+
+  @keyframes bounceIn{
+    0%{ transform: scale(0.5); opacity: 0; }
+    60%{ transform: scale(1.15); opacity: 1; }
+    100%{ transform: scale(1); }
+  }
+
+  .result-title{
+    font-family: 'Caveat', cursive;
+    font-size: 2.1rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .result-title.win{ color: var(--chalk-yellow); }
+  .result-title.lose{ color: var(--chalk-pink); }
+  .result-title.draw{ color: var(--chalk); }
+
+  .result-sub{
+    font-size: 0.78rem;
+    color: var(--chalk-dim);
+    margin: 0 0 6px;
+  }
+
+  .result-actions{
+    display:flex; gap: 10px;
+    flex-wrap: wrap;
+    justify-content:center;
+  }
+
+  .cell.win-line{
+    background: rgba(240,193,74,0.14);
+    animation: winpulse 0.9s ease-in-out infinite alternate;
+  }
+
+  @keyframes winpulse{
+    from{ box-shadow: inset 0 0 0 2px rgba(240,193,74,0.2); }
+    to{ box-shadow: inset 0 0 0 2px rgba(240,193,74,0.55); }
+  }
+
   .footer-note{
     text-align:center;
     font-size: 0.62rem;
@@ -205,6 +342,12 @@
       <h1>Tic-Tac-Toe</h1>
       <div class="subtitle">unbeatable minimax opponent</div>
 
+      <div class="scoreboard" id="scoreboard">
+        <div class="score-item"><span class="score-label">You</span><span class="score-val" id="scoreWins">0</span></div>
+        <div class="score-item"><span class="score-label">Draws</span><span class="score-val" id="scoreDraws">0</span></div>
+        <div class="score-item"><span class="score-label">AI</span><span class="score-val" id="scoreLosses">0</span></div>
+      </div>
+
       <div id="setup" class="setup">
         <p>Pick your chalk:</p>
         <div class="side-choice">
@@ -215,9 +358,21 @@
 
       <div id="gameArea" class="hidden">
         <div id="statusLine" class="status-line">Your move</div>
-        <div id="grid" class="grid"></div>
+        <div class="grid-wrap">
+          <div id="grid" class="grid"></div>
+          <div class="result-overlay" id="resultOverlay">
+            <div class="result-icon" id="resultIcon">🎉</div>
+            <div class="result-title" id="resultTitle">You won!</div>
+            <div class="result-sub" id="resultSub">Nice one.</div>
+            <div class="result-actions">
+              <button class="chalk-btn primary" id="overlayPlayAgain">Play again</button>
+              <button class="chalk-btn" id="overlayShareBtn">📤 Share</button>
+            </div>
+          </div>
+        </div>
         <div class="controls">
           <button class="chalk-btn" id="restartBtn">New game</button>
+          <button class="chalk-btn" id="soundBtn">🔊</button>
         </div>
       </div>
 
@@ -226,23 +381,99 @@
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
 (function(){
   // null = empty cell, keeping it simple instead of using ""
   const EMPTY = null;
-  let board, humanSymbol, aiSymbol, turn, gameOver;
+  let board, humanSymbol, aiSymbol, turn, gameOver, soundOn = true, audioCtx = null;
+
+  const SCORE_KEY = 'ttt_scores';
+  let scores = { wins: 0, draws: 0, losses: 0 };
 
   const setupEl = document.getElementById('setup');
   const gameArea = document.getElementById('gameArea');
   const gridEl = document.getElementById('grid');
   const statusEl = document.getElementById('statusLine');
   const restartBtn = document.getElementById('restartBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const toastEl = document.getElementById('toast');
+  const scoreWinsEl = document.getElementById('scoreWins');
+  const scoreDrawsEl = document.getElementById('scoreDraws');
+  const scoreLossesEl = document.getElementById('scoreLosses');
+  const resultOverlay = document.getElementById('resultOverlay');
+  const resultIcon = document.getElementById('resultIcon');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultSub = document.getElementById('resultSub');
+  const overlayPlayAgain = document.getElementById('overlayPlayAgain');
+  const overlayShareBtn = document.getElementById('overlayShareBtn');
 
-  document.getElementById('pickX').addEventListener('click', () => startGame('X'));
-  document.getElementById('pickO').addEventListener('click', () => startGame('O'));
+  // ---- sound: short Web Audio beeps, no external files needed ----
+  function ensureAudio(){
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { audioCtx = null; }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function beep(freq, duration, type, peak){
+    if (!soundOn) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(peak || 0.12, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  }
+  function sfxPlace(){ beep(300, 0.07, 'triangle', 0.08); }
+  function sfxWin(){ [523,659,784].forEach((f,i) => setTimeout(() => beep(f,0.22,'sine',0.15), i*120)); }
+  function sfxLose(){ [300,220,160].forEach((f,i) => setTimeout(() => beep(f,0.2,'sawtooth',0.09), i*110)); }
+  function sfxDraw(){ beep(260, 0.18, 'square', 0.08); }
+
+  // ---- score persistence ----
+  function loadScores(){
+    try {
+      const s = JSON.parse(localStorage.getItem(SCORE_KEY));
+      if (s && typeof s.wins === 'number') scores = s;
+    } catch (e) { /* fine, keep defaults */ }
+  }
+  function saveScores(){
+    try { localStorage.setItem(SCORE_KEY, JSON.stringify(scores)); } catch (e) { /* ignore */ }
+  }
+  function renderScores(){
+    scoreWinsEl.textContent = scores.wins;
+    scoreDrawsEl.textContent = scores.draws;
+    scoreLossesEl.textContent = scores.losses;
+  }
+
+  function showToast(text){
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    window.setTimeout(() => toastEl.classList.remove('show'), 1300);
+  }
+
+  loadScores();
+  renderScores();
+
+  document.getElementById('pickX').addEventListener('click', () => { ensureAudio(); startGame('X'); });
+  document.getElementById('pickO').addEventListener('click', () => { ensureAudio(); startGame('O'); });
   restartBtn.addEventListener('click', () => {
     gameArea.classList.add('hidden');
     setupEl.classList.remove('hidden');
+  });
+
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    if (soundOn) beep(440, 0.08, 'sine', 0.1);
   });
 
   function startGame(symbol){
@@ -254,6 +485,7 @@
 
     setupEl.classList.add('hidden');
     gameArea.classList.remove('hidden');
+    resultOverlay.classList.remove('show');
     statusEl.className = 'status-line';
     renderBoard();
     updateStatus();
@@ -263,11 +495,12 @@
     }
   }
 
-  function renderBoard(){
+  function renderBoard(winLine){
     gridEl.innerHTML = '';
     board.forEach((val, i) => {
       const cell = document.createElement('div');
-      cell.className = 'cell' + (val ? ' taken mark-' + val : '') + (gameOver ? ' disabled' : '');
+      const isWinCell = winLine && winLine.includes(i);
+      cell.className = 'cell' + (val ? ' taken mark-' + val : '') + (gameOver ? ' disabled' : '') + (isWinCell ? ' win-line' : '');
       cell.tabIndex = 0;
       cell.setAttribute('role', 'button');
       cell.setAttribute('aria-label', 'cell ' + (i+1) + (val ? ', ' + val : ', empty'));
@@ -285,6 +518,7 @@
   function humanMove(i){
     if (board[i] || gameOver || turn !== humanSymbol) return; // cell taken or not your turn
     board[i] = humanSymbol;
+    sfxPlace();
     afterMove();
   }
 
@@ -311,6 +545,7 @@
     const move = bestMove(board, aiSymbol);
     if (move !== null) {
       board[move] = aiSymbol;
+      sfxPlace();
     }
     afterMove();
   }
@@ -321,20 +556,72 @@
     statusEl.textContent = turn === humanSymbol ? 'Your move' : 'AI is thinking...';
   }
 
+  function getWinningLine(b){
+    for (const line of LINES) {
+      const [a,c,d] = line;
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) return line;
+    }
+    return null;
+  }
+
   function finishGame(result){
     gameOver = true;
-    renderBoard();
+    const winLine = result !== 'Draw' ? getWinningLine(board) : null;
+    renderBoard(winLine);
+
+    let icon, title, sub, titleClass;
     if (result === 'Draw') {
       statusEl.textContent = "It's a draw!";
       statusEl.className = 'status-line';
+      scores.draws++;
+      sfxDraw();
+      icon = '🤝'; title = "It's a draw!"; sub = 'You held the unbeatable AI to a tie.'; titleClass = 'draw';
     } else if (result === humanSymbol) {
       statusEl.textContent = 'You won! 🎉';
       statusEl.className = 'status-line win';
+      scores.wins++;
+      sfxWin();
+      icon = '🎉'; title = 'You won!'; sub = 'Wait, seriously? Nice one.'; titleClass = 'win';
     } else {
       statusEl.textContent = 'AI wins.';
       statusEl.className = 'status-line lose';
+      scores.losses++;
+      sfxLose();
+      icon = '💀'; title = 'AI wins'; sub = 'The AI plays perfectly - try again?'; titleClass = 'lose';
+    }
+    saveScores();
+    renderScores();
+
+    resultIcon.textContent = icon;
+    resultTitle.textContent = title;
+    resultTitle.className = 'result-title ' + titleClass;
+    resultSub.textContent = sub;
+    // small delay so the winning-line highlight is visible for a moment
+    // before the overlay covers the board
+    window.setTimeout(() => resultOverlay.classList.add('show'), 450);
+  }
+
+  function shareResult(){
+    const result = checkWinner(board);
+    const text = result === 'Draw'
+      ? `I forced a draw against an unbeatable Tic-Tac-Toe AI! Record so far: ${scores.wins}W-${scores.draws}D-${scores.losses}L. Think you can beat it?`
+      : result === humanSymbol
+      ? `I actually beat the unbeatable Tic-Tac-Toe AI?! Record: ${scores.wins}W-${scores.draws}D-${scores.losses}L. Try it yourself:`
+      : `The Tic-Tac-Toe AI beat me again 😅 Record: ${scores.wins}W-${scores.draws}D-${scores.losses}L. Bet you can't do better:`;
+    const url = window.location.href;
+
+    if (navigator.share) {
+      navigator.share({ title: 'Chalkboard Tic-Tac-Toe', text, url }).catch(() => { /* cancelled, ignore */ });
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank');
     }
   }
+
+  overlayShareBtn.addEventListener('click', shareResult);
+  overlayPlayAgain.addEventListener('click', () => {
+    resultOverlay.classList.remove('show');
+    startGame(humanSymbol);
+  });
 
   // all 8 ways to win on a 3x3 board (rows, cols, 2 diagonals)
   const LINES = [
